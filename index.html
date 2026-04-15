@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pallet Dimension Calculator</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f0f2f5;
+            color: #333;
+        }
+        .header {
+            background: linear-gradient(135deg, #1a73e8, #0d47a1);
+            color: white;
+            padding: 20px 30px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+        .header h1 { font-size: 22px; font-weight: 600; }
+        .header .subtitle { font-size: 13px; opacity: 0.8; margin-top: 2px; }
+
+        .tabs {
+            display: flex;
+            background: white;
+            border-bottom: 2px solid #e0e0e0;
+            padding: 0 20px;
+        }
+        .tab {
+            padding: 14px 24px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            color: #666;
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s;
+            user-select: none;
+        }
+        .tab:hover { color: #1a73e8; background: #f8f9ff; }
+        .tab.active {
+            color: #1a73e8;
+            border-bottom-color: #1a73e8;
+            font-weight: 600;
+        }
+
+        .tab-content { display: none; padding: 24px; }
+        .tab-content.active { display: block; }
+
+        .card {
+            background: white;
+            border-radius: 10px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+        }
+        .card h2 {
+            font-size: 16px;
+            color: #1a73e8;
+            margin-bottom: 16px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+
+        /* Master File Form */
+        .master-form {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 14px;
+            align-items: end;
+        }
+        .form-group { display: flex; flex-direction: column; gap: 5px; }
+        .form-group label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #555;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .form-group input, .form-group select {
+            padding: 10px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.2s;
+        }
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #1a73e8;
+            box-shadow: 0 0 0 3px rgba(26,115,232,0.1);
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-primary {
+            background: #1a73e8;
+            color: white;
+        }
+        .btn-primary:hover { background: #1557b0; }
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+        .btn-danger:hover { background: #c82333; }
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+        .btn-success:hover { background: #218838; }
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        .btn-secondary:hover { background: #5a6268; }
+        .btn-sm { padding: 6px 12px; font-size: 12px; }
+
+        .btn-group { display: flex; gap: 8px; margin-top: 10px; }
+
+        /* Tables */
+        .table-wrap { overflow-x: auto; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        thead th {
+            background: #f8f9fa;
+            padding: 10px 12px;
+            text-align: left;
+            font-weight: 600;
+            color: #555;
+            border-bottom: 2px solid #dee2e6;
+            white-space: nowrap;
+        }
+        tbody td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #eee;
+        }
+        tbody tr:hover { background: #f8f9ff; }
+        .text-right { text-align: right; }
+        .text-center { text-align: center; }
+
+        /* Calculator Form */
+        .calc-row {
+            display: grid;
+            grid-template-columns: 2fr 1fr auto;
+            gap: 12px;
+            align-items: end;
+            margin-bottom: 16px;
+        }
+
+        /* Result Cards */
+        .result-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+        .result-card {
+            background: linear-gradient(135deg, #f8f9ff, #eef1ff);
+            border: 1px solid #d4daff;
+            border-radius: 10px;
+            padding: 18px;
+        }
+        .result-card .label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #666;
+            margin-bottom: 6px;
+        }
+        .result-card .value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #1a73e8;
+        }
+        .result-card .unit {
+            font-size: 13px;
+            color: #888;
+            margin-left: 4px;
+        }
+
+        /* Detail Table */
+        .detail-table th { font-size: 12px; }
+        .detail-table td { font-size: 13px; }
+        .highlight-row { background: #fff8e1 !important; }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+        .empty-state .icon { font-size: 48px; margin-bottom: 10px; }
+
+        /* Import/Export */
+        .io-buttons { display: flex; gap: 8px; margin-bottom: 16px; }
+
+        .badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        .badge-full { background: #e8f5e9; color: #2e7d32; }
+        .badge-partial { background: #fff3e0; color: #e65100; }
+        .badge-info { background: #e3f2fd; color: #1565c0; }
+
+        .actions-cell { display: flex; gap: 4px; }
+
+        /* Pallet Visual */
+        .pallet-summary {
+            background: #fafafa;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            padding: 16px;
+            margin-top: 16px;
+        }
+        .pallet-summary h3 {
+            font-size: 14px;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .dim-display {
+            font-family: 'Courier New', monospace;
+            font-size: 18px;
+            font-weight: 700;
+            color: #0d47a1;
+            background: white;
+            padding: 12px 16px;
+            border-radius: 6px;
+            border: 2px dashed #1a73e8;
+            display: inline-block;
+        }
+
+        .upload-area {
+            border: 2px dashed #ccc;
+            border-radius: 10px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: #fafafa;
+        }
+        .upload-area:hover, .upload-area.dragover {
+            border-color: #1a73e8;
+            background: #f0f4ff;
+        }
+        .upload-area .upload-icon { font-size: 40px; margin-bottom: 10px; }
+
+        .paste-area textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            resize: vertical;
+            transition: border-color 0.2s;
+        }
+        .paste-area textarea:focus {
+            outline: none;
+            border-color: #1a73e8;
+            box-shadow: 0 0 0 3px rgba(26,115,232,0.1);
+        }
+        .th-sticky { position: sticky; left: 0; }
+        #resultTable thead th {
+            background: #e8f0fe;
+            color: #1a55b0;
+            font-size: 12px;
+            vertical-align: middle;
+        }
+        #resultTable tfoot td {
+            padding: 10px 12px;
+            border-top: 2px solid #1a73e8;
+            font-size: 13px;
+        }
+        .not-found { background: #fff0f0 !important; color: #c00; }
+        .from-master { background: #fff9c4; }
+        .has-formula {
+            cursor: help;
+            position: relative;
+            border-bottom: 2px dotted #1a73e8;
+        }
+        .has-formula:hover::after {
+            content: attr(title);
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #333;
+            color: #fff;
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 400;
+            white-space: nowrap;
+            z-index: 100;
+            margin-top: 4px;
+        }
+
+        @media (max-width: 768px) {
+            .master-form { grid-template-columns: 1fr 1fr; }
+            .calc-row { grid-template-columns: 1fr; }
+            .result-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+
+<div class="header">
+    <div>
+        <h1>Pallet Dimension Calculator</h1>
+        <div class="subtitle">Automated pallet & shipper box calculation</div>
+    </div>
+</div>
+
+<div class="tabs">
+    <div class="tab active" data-tab="master">Master File</div>
+    <div class="tab" data-tab="calculator">Pallet Calculator</div>
+</div>
+
+<!-- TAB 1: Master File -->
+<div class="tab-content active" id="tab-master">
+    <div class="card">
+        <h2>Upload Master File</h2>
+        <div class="upload-area" id="uploadArea">
+            <div class="upload-icon">📁</div>
+            <p>Drag & drop Excel/CSV file here or click to upload</p>
+            <p style="font-size:12px;color:#999;margin-top:6px;">Supported: .xlsx, .xls, .csv</p>
+            <input type="file" id="importFile" accept=".csv,.xlsx,.xls" style="display:none" onchange="importMaster(event)">
+        </div>
+        <div class="io-buttons" style="margin-top:12px;">
+            <button class="btn btn-success btn-sm" onclick="exportMaster()">Export CSV</button>
+            <button class="btn btn-danger btn-sm" onclick="clearMaster()">Clear All</button>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>Master File List</h2>
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Product Code</th>
+                        <th>SAP 코드</th>
+                        <th>Product Description</th>
+                        <th class="text-right">무게 (g)</th>
+                        <th class="text-right">PCS/PALLET</th>
+                        <th class="text-right">MOQ</th>
+                        <th class="text-right">1박스 개입수<br>(pc/shipper)</th>
+                    </tr>
+                </thead>
+                <tbody id="masterTableBody">
+                </tbody>
+            </table>
+            <div class="empty-state" id="masterEmpty">
+                <div class="icon">📦</div>
+                <p>No items loaded. Upload an Excel or CSV file above.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- TAB 2: Calculator -->
+<div class="tab-content" id="tab-calculator">
+    <!-- Paste Input Area -->
+    <div class="card">
+        <h2>Order Data Input</h2>
+        <p style="font-size:12px;color:#888;margin-bottom:12px;">엑셀에서 복사 후 아래에 붙여넣기하세요. (PO US / PO AP / Material Code AP / CODE / 제품명 / 출고수량)</p>
+        <div class="paste-area">
+            <textarea id="pasteInput" rows="6" placeholder="엑셀에서 복사 후 여기에 붙여넣기 (탭 구분)&#10;&#10;예:&#10;452013024	3001982814	79650255	681866300	NTG COLLAGEN BANK GLOW &amp; PLUMP MASK 1CT	51000&#10;452013027	3001982815	79650257	681866400	NTG COLLAGEN BANK GLOW &amp; PLUMP MASK 4CT	25000"></textarea>
+            <div class="btn-group">
+                <button class="btn btn-primary" onclick="parsePaste()">Calculate</button>
+                <button class="btn btn-danger btn-sm" onclick="clearCalcItems()">Clear All</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Calculation Result Table -->
+    <div class="card" id="calcResultCard" style="display:none;">
+        <h2>Calculation Result</h2>
+        <div class="table-wrap">
+            <table class="detail-table" id="resultTable">
+                <thead>
+                    <tr>
+                        <th rowspan="2">CODE</th>
+                        <th rowspan="2">Product Name</th>
+                        <th rowspan="2" class="text-right">Quantities</th>
+                        <th rowspan="2" class="text-right from-master">Units/<br>Shipper Box</th>
+                        <th rowspan="2" class="text-right has-formula" title="= Quantities ÷ Units/Shipper Box (올림)">Shipper<br>Boxes</th>
+                        <th rowspan="2" class="text-right from-master">Units/<br>Pallet</th>
+                        <th rowspan="2" class="text-right has-formula" title="= Quantities ÷ Units/Pallet (올림)">No. of<br>Pallets</th>
+                        <th colspan="4" class="text-center" style="border-bottom:1px solid #dee2e6;">Weight</th>
+                        <th rowspan="2" class="from-master">Dimension<br>(W x L x H cm)</th>
+                    </tr>
+                    <tr>
+                        <th class="text-right from-master" style="font-size:11px;">Weight(g)<br>/Shipper</th>
+                        <th class="text-right has-formula" style="font-size:11px;" title="= Weight(g)/Shipper × Shipper Boxes ÷ 1000">Total Box<br>Weight(kg)</th>
+                        <th class="text-right has-formula" style="font-size:11px;" title="= No. of Pallets × 15kg">Pallet<br>Weight(kg)</th>
+                        <th class="text-right has-formula" style="font-size:11px;" title="= Total Box Weight + Pallet Weight">G.W (kg)</th>
+                    </tr>
+                </thead>
+                <tbody id="calcTableBody"></tbody>
+                <tfoot id="calcTableFoot">
+                    <tr style="background:#e8f0fe;font-weight:700;">
+                        <td colspan="2">TOTAL</td>
+                        <td class="text-right" id="ftQty"></td>
+                        <td></td>
+                        <td class="text-right" id="ftBoxes"></td>
+                        <td></td>
+                        <td class="text-right" id="ftPallets"></td>
+                        <td></td>
+                        <td class="text-right" id="ftBoxWeight"></td>
+                        <td class="text-right" id="ftPalletWeight"></td>
+                        <td class="text-right" id="ftGW"></td>
+                        <td></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+        <div class="btn-group" style="margin-top:16px;">
+            <button class="btn btn-success btn-sm" onclick="exportResult()">Export Result (CSV)</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// ===== DATA STORE =====
+let masterData = JSON.parse(localStorage.getItem('palletMaster') || '[]');
+let calcItems = [];
+
+// ===== TAB SWITCHING =====
+document.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+        if (tab.dataset.tab === 'calculator') { refreshCalcSelect(); renderCalc(); }
+    });
+});
+
+// ===== MASTER FILE FUNCTIONS =====
+function saveMaster() {
+    localStorage.setItem('palletMaster', JSON.stringify(masterData));
+}
+
+function clearMaster() {
+    if (masterData.length === 0) return;
+    if (!confirm('Clear all master data?')) return;
+    masterData = [];
+    saveMaster();
+    renderMasterTable();
+}
+
+// Upload area drag & drop
+const uploadArea = document.getElementById('uploadArea');
+uploadArea.addEventListener('click', () => document.getElementById('importFile').click());
+uploadArea.addEventListener('dragover', (e) => { e.preventDefault(); uploadArea.classList.add('dragover'); });
+uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('dragover'));
+uploadArea.addEventListener('drop', (e) => {
+    e.preventDefault();
+    uploadArea.classList.remove('dragover');
+    const file = e.dataTransfer.files[0];
+    if (file) processFile(file);
+});
+
+function renderMasterTable() {
+    const tbody = document.getElementById('masterTableBody');
+    const empty = document.getElementById('masterEmpty');
+    if (masterData.length === 0) {
+        tbody.innerHTML = '';
+        empty.style.display = '';
+        return;
+    }
+    empty.style.display = 'none';
+    tbody.innerHTML = masterData.map((m, i) => `
+        <tr>
+            <td><strong>${esc(m.productCode)}</strong></td>
+            <td>${esc(m.sapCode)}</td>
+            <td>${esc(m.description)}</td>
+            <td class="text-right">${m.weight}</td>
+            <td class="text-right">${m.pcsPerPallet}</td>
+            <td class="text-right">${m.moq || '-'}</td>
+            <td class="text-right">${m.unitsPerBox}</td>
+        </tr>
+    `).join('');
+}
+
+// ===== IMPORT / EXPORT =====
+function exportMaster() {
+    if (masterData.length === 0) { alert('No data to export.'); return; }
+    const headers = 'Product Code,SAP 코드,PRODUCT DESCRIPTION,1박스 개입수,무게,PCS/PALLET,MOQ';
+    const rows = masterData.map(m =>
+        `${m.productCode},${m.sapCode},${m.description},${m.unitsPerBox},${m.weight},${m.pcsPerPallet},${m.moq||''}`
+    );
+    downloadCSV(headers + '\n' + rows.join('\n'), 'master_file.csv');
+}
+
+function importMaster(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    processFile(file);
+    e.target.value = '';
+}
+
+function processFile(file) {
+    const ext = file.name.split('.').pop().toLowerCase();
+    const reader = new FileReader();
+
+    if (ext === 'csv') {
+        reader.onload = function(ev) {
+            const lines = ev.target.result.split('\n').filter(l => l.trim());
+            if (lines.length < 2) { alert('Invalid CSV'); return; }
+            const header = lines[0].split(',').map(c => c.trim());
+            const rows = [];
+            for (let i = 1; i < lines.length; i++) {
+                const cols = lines[i].split(',');
+                if (cols.length < 4) continue;
+                rows.push(cols.map(c => c.trim()));
+            }
+            loadRows(header, rows);
+        };
+        reader.readAsText(file);
+    } else if (ext === 'xlsx' || ext === 'xls') {
+        reader.onload = function(ev) {
+            const data = new Uint8Array(ev.target.result);
+            const wb = XLSX.read(data, { type: 'array' });
+            const ws = wb.Sheets[wb.SheetNames[0]];
+            const json = XLSX.utils.sheet_to_json(ws, { header: 1 });
+            if (json.length < 2) { alert('No data found in Excel file.'); return; }
+            const header = json[0].map(h => String(h || '').trim());
+            const rows = json.slice(1).filter(r => r.length >= 4 && r[0]);
+            loadRows(header, rows);
+        };
+        reader.readAsArrayBuffer(file);
+    } else {
+        alert('Unsupported file type. Use .xlsx, .xls, or .csv');
+    }
+}
+
+// 헤더명으로 컬럼 인덱스 자동 탐색
+function findCol(headers, keywords) {
+    const lower = headers.map(h => h.toLowerCase().replace(/\s+/g, ''));
+    for (const kw of keywords) {
+        const idx = lower.findIndex(h => h.includes(kw.toLowerCase().replace(/\s+/g, '')));
+        if (idx !== -1) return idx;
+    }
+    return -1;
+}
+
+function loadRows(headers, rows) {
+    // 헤더 기반으로 컬럼 위치 자동 매핑
+    const colCode = findCol(headers, ['product code', 'productcode', 'code']);
+    const colSap = findCol(headers, ['sap']);
+    const colDesc = findCol(headers, ['description', 'product description', '제품명']);
+    const colWeight = findCol(headers, ['weight(g)', 'weight(g)/shipper', '무게']);
+    const colPcs = findCol(headers, ['units/pallet', 'pcs/pallet']);
+    const colMoq = findCol(headers, ['moq']);
+    const colUnitsPerBox = findCol(headers, ['units/shipperbox', 'units/shipper', '개입수', 'pc/shipper']);
+    const colDim = findCol(headers, ['dimension']);
+
+    console.log('Header mapping:', { headers, colCode, colSap, colDesc, colWeight, colPcs, colMoq, colUnitsPerBox, colDim });
+
+    if (colCode === -1) { alert('Product Code 컬럼을 찾을 수 없습니다.'); return; }
+
+    const imported = rows.map(cols => ({
+        productCode: String(cols[colCode] || '').trim(),
+        sapCode: colSap !== -1 ? String(cols[colSap] || '').trim() : '',
+        description: colDesc !== -1 ? String(cols[colDesc] || '').trim() : '',
+        unitsPerBox: colUnitsPerBox !== -1 ? (parseInt(String(cols[colUnitsPerBox]).replace(/,/g,'')) || 0) : 0,
+        weight: colWeight !== -1 ? (parseFloat(String(cols[colWeight]).replace(/,/g,'')) || 0) : 0,
+        pcsPerPallet: colPcs !== -1 ? (parseInt(String(cols[colPcs]).replace(/,/g,'')) || 0) : 0,
+        moq: colMoq !== -1 ? (parseInt(String(cols[colMoq]).replace(/,/g,'')) || 0) : 0,
+        dimension: colDim !== -1 ? String(cols[colDim] || '').trim() : '',
+    })).filter(r => r.productCode);
+
+    if (imported.length === 0) { alert('No valid rows found.'); return; }
+    if (confirm(`Import ${imported.length} items? This will replace existing data.`)) {
+        masterData = imported;
+        saveMaster();
+        renderMasterTable();
+    }
+}
+
+function downloadCSV(content, filename) {
+    const bom = '\uFEFF';
+    const blob = new Blob([bom + content], { type: 'text/csv;charset=utf-8;' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    a.click();
+}
+
+// ===== CALCULATOR FUNCTIONS =====
+const PALLET_WEIGHT_KG = 15;
+const DEFAULT_DIMENSION = '100 x 120 x 130';
+
+function refreshCalcSelect() {} // not needed anymore
+
+// Find master by CODE (6으로 시작하는 코드 매칭)
+function findMaster(code) {
+    code = String(code).trim();
+    let m = masterData.find(d => String(d.productCode).trim() === code);
+    if (m) return m;
+    // partial match
+    m = masterData.find(d => String(d.productCode).includes(code) || code.includes(String(d.productCode)));
+    return m || null;
+}
+
+// Parse pasted order data
+// Format: PO US \t PO AP \t Material Code AP \t CODE \t 제품명 \t 출고수량
+function parsePaste() {
+    const raw = document.getElementById('pasteInput').value.trim();
+    if (!raw) return;
+    const lines = raw.split('\n').filter(l => l.trim());
+
+    calcItems = [];
+    lines.forEach(line => {
+        const cols = line.split('\t').map(s => s.trim());
+        // Skip header row
+        if (cols[0] && cols[0].toUpperCase().includes('PO')) return;
+        if (cols.length < 4) return;
+
+        // Find the CODE column (starts with 6)
+        let code = '', name = '', qty = 0;
+        let poUs = cols[0] || '', poAp = cols[1] || '', matCode = cols[2] || '';
+
+        // col[3] = CODE, col[4] = 제품명, col[5] = 출고수량
+        code = cols[3] || '';
+        name = cols[4] || '';
+        qty = parseInt(String(cols[5] || '').replace(/,/g, '')) || 0;
+
+        if (code) {
+            calcItems.push({ poUs, poAp, matCode, code, name, qty });
+        }
+    });
+
+    if (calcItems.length > 0) {
+        renderCalc();
+    } else {
+        alert('유효한 데이터를 찾을 수 없습니다.');
+    }
+}
+
+function clearCalcItems() {
+    calcItems = [];
+    document.getElementById('pasteInput').value = '';
+    document.getElementById('inputPreviewCard').style.display = 'none';
+    document.getElementById('calcResultCard').style.display = 'none';
+}
+
+function updateQty(idx, val) {
+    calcItems[idx].qty = parseInt(val) || 0;
+    renderCalc();
+}
+
+function removeCalcItem(idx) {
+    calcItems.splice(idx, 1);
+    renderCalc();
+}
+
+function renderInputPreview() {
+    const card = document.getElementById('inputPreviewCard');
+    const tbody = document.getElementById('inputPreviewBody');
+    if (calcItems.length === 0) { card.style.display = 'none'; return; }
+    card.style.display = '';
+
+    tbody.innerHTML = calcItems.map((c, i) => `
+        <tr>
+            <td>${esc(c.poUs)}</td>
+            <td>${esc(c.poAp)}</td>
+            <td>${esc(c.matCode)}</td>
+            <td><strong>${esc(c.code)}</strong></td>
+            <td>${esc(c.name)}</td>
+            <td class="text-right">
+                <input type="number" value="${c.qty}" min="0"
+                    style="width:90px;padding:4px 6px;border:1px solid #ddd;border-radius:4px;text-align:right;font-size:13px;"
+                    onchange="updateQty(${i}, this.value)">
+            </td>
+        </tr>
+    `).join('');
+}
+
+function renderCalc() {
+    const card = document.getElementById('calcResultCard');
+    const tbody = document.getElementById('calcTableBody');
+
+    // Filter items with qty > 0
+    const activeItems = calcItems.filter(c => c.qty > 0);
+
+    if (activeItems.length === 0) {
+        card.style.display = 'none';
+        return;
+    }
+    card.style.display = '';
+
+    let totQty = 0, totBoxes = 0, totPallets = 0, totBoxWeight = 0, totPalletWeight = 0, totGW = 0;
+
+    tbody.innerHTML = activeItems.map((item, i) => {
+        const m = findMaster(item.code);
+        if (!m) {
+            return `<tr class="not-found">
+                <td><strong>${esc(item.code)}</strong></td>
+                <td>${esc(item.name)}</td>
+                <td class="text-right">${item.qty.toLocaleString()}</td>
+                <td colspan="9" style="color:#c00;font-size:12px;">Master file에서 찾을 수 없음</td>
+            </tr>`;
+        }
+
+        const qty = item.qty;
+        const unitsPerBox = m.unitsPerBox;                          // 2. from master
+        const shipperBoxes = Math.ceil(qty / unitsPerBox);          // 3. qty / units per box
+        const unitsPerPallet = m.pcsPerPallet;                      // 4. from master
+        const pallets = Math.ceil(qty / unitsPerPallet);            // 5. qty / units per pallet
+        const weightGPerShipper = m.weight;                         // 6. from master (grams)
+        const totalBoxWeightKg = (weightGPerShipper * shipperBoxes) / 1000;  // 7. weight * boxes / 1000
+        const palletWeightKg = pallets * PALLET_WEIGHT_KG;          // 8. pallets * 15kg
+        const gwKg = totalBoxWeightKg + palletWeightKg;             // 9. box weight + pallet weight
+        const dimension = m.dimension || DEFAULT_DIMENSION;          // 10. from master or default
+
+        totQty += qty;
+        totBoxes += shipperBoxes;
+        totPallets += pallets;
+        totBoxWeight += totalBoxWeightKg;
+        totPalletWeight += palletWeightKg;
+        totGW += gwKg;
+
+        return `<tr>
+            <td><strong>${esc(item.code)}</strong></td>
+            <td style="font-size:12px;">${esc(item.name)}</td>
+            <td class="text-right">${qty.toLocaleString()}</td>
+            <td class="text-right from-master">${unitsPerBox.toLocaleString()}</td>
+            <td class="text-right">${shipperBoxes.toLocaleString()}</td>
+            <td class="text-right from-master">${unitsPerPallet.toLocaleString()}</td>
+            <td class="text-right">${pallets}</td>
+            <td class="text-right from-master">${weightGPerShipper.toLocaleString()}</td>
+            <td class="text-right">${totalBoxWeightKg.toFixed(2)}</td>
+            <td class="text-right">${palletWeightKg.toFixed(2)}</td>
+            <td class="text-right"><strong>${gwKg.toFixed(2)}</strong></td>
+            <td class="from-master"><span class="dim-display" style="font-size:12px;padding:3px 6px;">${esc(dimension)}</span></td>
+        </tr>`;
+    }).join('');
+
+    document.getElementById('ftQty').textContent = totQty.toLocaleString();
+    document.getElementById('ftBoxes').textContent = totBoxes.toLocaleString();
+    document.getElementById('ftPallets').textContent = totPallets;
+    document.getElementById('ftBoxWeight').textContent = totBoxWeight.toFixed(2);
+    document.getElementById('ftPalletWeight').textContent = totPalletWeight.toFixed(2);
+    document.getElementById('ftGW').textContent = totGW.toFixed(2);
+}
+
+function exportResult() {
+    const activeItems = calcItems.filter(c => c.qty > 0);
+    if (activeItems.length === 0) return;
+    let csv = 'CODE,Product Name,Quantities,Units/Shipper Box,Shipper Boxes,Units/Pallet,No. of Pallets,Weight(g)/Shipper,Total Box Weight(kg),Pallet Weight(kg),G.W(kg),Dimension\n';
+
+    activeItems.forEach(item => {
+        const m = findMaster(item.code);
+        if (!m) return;
+        const qty = item.qty;
+        const shipperBoxes = Math.ceil(qty / m.unitsPerBox);
+        const pallets = Math.ceil(qty / m.pcsPerPallet);
+        const totalBoxWeight = (m.weight * shipperBoxes) / 1000;
+        const palletWeight = pallets * PALLET_WEIGHT_KG;
+        const gw = totalBoxWeight + palletWeight;
+        const dim = m.dimension || DEFAULT_DIMENSION;
+        csv += `${item.code},"${item.name}",${qty},${m.unitsPerBox},${shipperBoxes},${m.pcsPerPallet},${pallets},${m.weight},${totalBoxWeight.toFixed(2)},${palletWeight.toFixed(2)},${gw.toFixed(2)},${dim}\n`;
+    });
+    downloadCSV(csv, 'pallet_result.csv');
+}
+
+function esc(str) {
+    const d = document.createElement('div');
+    d.textContent = str;
+    return d.innerHTML;
+}
+
+// ===== INIT =====
+renderMasterTable();
+</script>
+
+</body>
+</html>
