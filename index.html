@@ -441,6 +441,8 @@
             <table class="detail-table" id="resultTable">
                 <thead>
                     <tr>
+                        <th rowspan="2">AP PO</th>
+                        <th rowspan="2">AP Material<br>Code</th>
                         <th rowspan="2">CODE</th>
                         <th rowspan="2">Product Name</th>
                         <th rowspan="2" class="text-right">Quantities</th>
@@ -461,7 +463,7 @@
                 <tbody id="calcTableBody"></tbody>
                 <tfoot id="calcTableFoot">
                     <tr style="background:#e8f0fe;font-weight:700;">
-                        <td colspan="2">TOTAL</td>
+                        <td colspan="4">TOTAL</td>
                         <td class="text-right" id="ftQty"></td>
                         <td></td>
                         <td class="text-right" id="ftBoxes"></td>
@@ -766,6 +768,8 @@ function renderCalc() {
         const m = findMaster(item.code);
         if (!m) {
             return `<tr class="not-found">
+                <td>${esc(item.poAp)}</td>
+                <td>${esc(item.matCode)}</td>
                 <td><strong>${esc(item.code)}</strong></td>
                 <td>${esc(item.name)}</td>
                 <td class="text-right">${item.qty.toLocaleString()}</td>
@@ -792,6 +796,8 @@ function renderCalc() {
         totGW += gwKg;
 
         return `<tr>
+            <td>${esc(item.poAp)}</td>
+            <td>${esc(item.matCode)}</td>
             <td><strong>${esc(item.code)}</strong></td>
             <td style="font-size:12px;">${esc(item.name)}</td>
             <td class="text-right">${qty.toLocaleString()}</td>
