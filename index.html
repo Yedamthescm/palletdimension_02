@@ -308,6 +308,46 @@
             margin-top: 4px;
         }
 
+        .order-input-header {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 1fr 0.8fr 40px;
+            gap: 8px;
+            padding: 8px 0;
+            font-size: 12px;
+            font-weight: 600;
+            color: #555;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .order-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 1fr 0.8fr 40px;
+            gap: 8px;
+            margin-bottom: 6px;
+        }
+        .order-row input {
+            padding: 8px 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 13px;
+            transition: border-color 0.2s;
+        }
+        .order-row input:focus {
+            outline: none;
+            border-color: #1a73e8;
+            box-shadow: 0 0 0 3px rgba(26,115,232,0.1);
+        }
+        .order-row .btn-remove {
+            background: none;
+            border: none;
+            color: #ccc;
+            font-size: 20px;
+            cursor: pointer;
+            padding: 0;
+            line-height: 1;
+        }
+        .order-row .btn-remove:hover { color: #dc3545; }
+
         @media (max-width: 768px) {
             .master-form { grid-template-columns: 1fr 1fr; }
             .calc-row { grid-template-columns: 1fr; }
@@ -377,13 +417,20 @@
     <!-- Paste Input Area -->
     <div class="card">
         <h2>Order Data Input</h2>
-        <p style="font-size:12px;color:#888;margin-bottom:12px;">엑셀에서 복사 후 아래에 붙여넣기하세요. (PO US / PO AP / Material Code AP / CODE / 제품명 / 출고수량)</p>
-        <div class="paste-area">
-            <textarea id="pasteInput" rows="6" placeholder="엑셀에서 복사 후 여기에 붙여넣기 (탭 구분)&#10;&#10;예:&#10;452013024	3001982814	79650255	681866300	NTG COLLAGEN BANK GLOW &amp; PLUMP MASK 1CT	51000&#10;452013027	3001982815	79650257	681866400	NTG COLLAGEN BANK GLOW &amp; PLUMP MASK 4CT	25000"></textarea>
-            <div class="btn-group">
-                <button class="btn btn-primary" onclick="parsePaste()">Calculate</button>
-                <button class="btn btn-danger btn-sm" onclick="clearCalcItems()">Clear All</button>
-            </div>
+        <p style="font-size:12px;color:#888;margin-bottom:12px;">항목을 입력하고 Calculate 버튼을 눌러주세요. US Material Code로 Master File을 매칭합니다.</p>
+        <div class="order-input-header">
+            <span>US PO</span>
+            <span>AP PO</span>
+            <span>US Material Code</span>
+            <span>AP Material Code</span>
+            <span>수량</span>
+            <span></span>
+        </div>
+        <div id="orderRows"></div>
+        <div class="btn-group">
+            <button class="btn btn-primary btn-sm" onclick="addOrderRow()">+ 행 추가</button>
+            <button class="btn btn-primary" onclick="calculateFromRows()">Calculate</button>
+            <button class="btn btn-danger btn-sm" onclick="clearCalcItems()">Clear All</button>
         </div>
     </div>
 
@@ -619,46 +666,53 @@ function findMaster(code) {
     return m || null;
 }
 
-// Parse pasted order data
-// Format: PO US \t PO AP \t Material Code AP \t CODE \t 제품명 \t 출고수량
-function parsePaste() {
-    const raw = document.getElementById('pasteInput').value.trim();
-    if (!raw) return;
-    const lines = raw.split('\n').filter(l => l.trim());
+let orderRowCount = 0;
 
+function addOrderRow(data) {
+    const container = document.getElementById('orderRows');
+    const row = document.createElement('div');
+    row.className = 'order-row';
+    row.dataset.rowId = orderRowCount++;
+    const d = data || {};
+    row.innerHTML = `
+        <input type="text" placeholder="US PO" value="${esc(d.poUs || '')}">
+        <input type="text" placeholder="AP PO" value="${esc(d.poAp || '')}">
+        <input type="text" placeholder="US Material Code" value="${esc(d.code || '')}">
+        <input type="text" placeholder="AP Material Code" value="${esc(d.matCode || '')}">
+        <input type="number" placeholder="수량" min="0" value="${d.qty || ''}">
+        <button class="btn-remove" onclick="this.parentElement.remove()">&times;</button>
+    `;
+    container.appendChild(row);
+}
+
+function calculateFromRows() {
+    const rows = document.querySelectorAll('.order-row');
     calcItems = [];
-    lines.forEach(line => {
-        const cols = line.split('\t').map(s => s.trim());
-        // Skip header row
-        if (cols[0] && cols[0].toUpperCase().includes('PO')) return;
-        if (cols.length < 4) return;
-
-        // Find the CODE column (starts with 6)
-        let code = '', name = '', qty = 0;
-        let poUs = cols[0] || '', poAp = cols[1] || '', matCode = cols[2] || '';
-
-        // col[3] = CODE, col[4] = 제품명, col[5] = 출고수량
-        code = cols[3] || '';
-        name = cols[4] || '';
-        qty = parseInt(String(cols[5] || '').replace(/,/g, '')) || 0;
-
+    rows.forEach(row => {
+        const inputs = row.querySelectorAll('input');
+        const poUs = inputs[0].value.trim();
+        const poAp = inputs[1].value.trim();
+        const code = inputs[2].value.trim();
+        const matCode = inputs[3].value.trim();
+        const qty = parseInt(inputs[4].value.replace(/,/g, '')) || 0;
         if (code) {
+            const m = findMaster(code);
+            const name = m ? m.description : '';
             calcItems.push({ poUs, poAp, matCode, code, name, qty });
         }
     });
-
     if (calcItems.length > 0) {
         renderCalc();
     } else {
-        alert('유효한 데이터를 찾을 수 없습니다.');
+        alert('US Material Code를 입력해주세요.');
     }
 }
 
 function clearCalcItems() {
     calcItems = [];
-    document.getElementById('pasteInput').value = '';
-    document.getElementById('inputPreviewCard').style.display = 'none';
+    document.getElementById('orderRows').innerHTML = '';
     document.getElementById('calcResultCard').style.display = 'none';
+    addOrderRow();
 }
 
 function updateQty(idx, val) {
@@ -789,6 +843,7 @@ function esc(str) {
 
 // ===== INIT =====
 renderMasterTable();
+addOrderRow();
 </script>
 
 </body>
